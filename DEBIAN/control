@@ -1,0 +1,9 @@
+Package: bootmenu
+Version: 6.0-1
+Architecture: all
+Maintainer: Diogo Santos <diogomsantos@hotmail.com>
+Installed-Size: 26
+Section: pipplware
+Priority: extra
+Homepage: http://pipplware.pplware.pt/
+Description: Pipplware default boot menu and scripts

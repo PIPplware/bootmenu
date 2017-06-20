@@ -1,0 +1,287 @@
+#!/bin/bash
+###########################################################
+# Simple Startup Menu
+#
+# Waits up to 25 seconds before choosing default action
+# User can select by entering option # with ENTER
+#
+###########################################################
+#
+###Functions Start###
+#
+###Joystick Support###
+enable_joystick() {
+    local params=("$@")
+    if [[ "${#params[@]}" -eq 0 ]]; then
+        params=(kcub1 kcuf1 kcuu1 kcud1 0x0a 0x20)
+    fi
+    # get the first joystick device (if not already set)
+    [[ -c "$__joy2key_dev" ]] || __joy2key_dev="/dev/input/jsX"
+    # if no joystick device, or joy2key is already running exit
+    [[ -z "$__joy2key_dev" ]] || pgrep -f joy2key.py >/dev/null && return 1
+    # if joy2key.py is installed run it with cursor keys for axis, and enter + space for buttons 0 and 1
+    if "/home/pi/RetroPie-Setup/scriptmodules/supplementary/runcommand/joy2key.py" "$__joy2key_dev" "${params[@]}" & 2>/dev/null; then
+        __joy2key_pid=$!
+        return 0
+    fi
+    return 1
+}
+
+kill_joystick() {
+if [[ -n $__joy2key_pid ]]; then
+    kill -INT $__joy2key_pid 2>/dev/null
+    sleep 1
+fi
+}
+###End of Joystick Support###
+
+boottoes_kodi(){
+#Disable Kodi and Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm disable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default multi-user.target > /dev/null 2>&1
+ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+#ES auto-start - Remove old profile.d
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+cat >/etc/profile.d/10-retropie.sh <<_EOF_
+# launch our autostart apps (if we are on the correct tty)
+if [ "\`tty\`" = "/dev/tty1" ]; then
+    bash "/opt/retropie/configs/all/autostart.sh"
+fi
+_EOF_
+echo -e 'emulationstation #auto' >/opt/retropie/configs/all/autostart.sh
+cp /opt/retropie/supplementary/emulationstation.kodi_autostart /opt/retropie/supplementary/emulationstation/emulationstation > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 1/fbi -T 2/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+sync
+reboot
+}
+ 
+boottoes() {
+#Disable Kodi and Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm disable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default multi-user.target > /dev/null 2>&1
+ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+#ES auto-start - Remove old profile.d
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+cat >/etc/profile.d/10-retropie.sh <<_EOF_
+# launch our autostart apps (if we are on the correct tty)
+if [ "\`tty\`" = "/dev/tty1" ]; then
+    bash "/opt/retropie/configs/all/autostart.sh"
+fi
+_EOF_
+echo -e 'emulationstation #auto' >/opt/retropie/configs/all/autostart.sh
+cp /opt/retropie/supplementary/emulationstation.original /opt/retropie/supplementary/emulationstation/emulationstation > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 1/fbi -T 2/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+sync
+reboot
+}
+ 
+boottokodi(){
+#Disable Kodi and Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm disable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default multi-user.target > /dev/null 2>&1
+ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+#Enable Kodi auto-start + ES on Exit - Remove old profile.d
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+cat >/etc/profile.d/10-retropie.sh <<_EOF_
+# launch our autostart apps (if we are on the correct tty)
+if [ "\`tty\`" = "/dev/tty1" ]; then
+    bash "/opt/retropie/configs/all/autostart.sh"
+fi
+_EOF_
+echo -e 'kodi #auto\nemulationstation #auto' >/opt/retropie/configs/all/autostart.sh
+cp /opt/retropie/supplementary/emulationstation.original /opt/retropie/supplementary/emulationstation/emulationstation > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 1/fbi -T 2/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+sync
+reboot
+}
+ 
+boottoxfce() {
+#Disable Kodi and enable Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm enable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default graphical.target > /dev/null 2>&1
+ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+sed -i 's/^Session.*/Session=xfce/' /home/pi/.dmrc > /dev/null 2>&1
+#Disable ES auto-start
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+rm -f /etc/profile.d/10-retropie.sh > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 2/fbi -T 1/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+if (dialog --title "Pipplware Default Boot Menu - Host: [$hostname]" --yesno "\nDo you want to enable Auto Login ?" 7 76) then
+	sed /etc/lightdm/lightdm.conf -i -e "s/^#autologin-user=.*/autologin-user=pi/"; sync; reboot;
+else
+	sed /etc/lightdm/lightdm.conf -i -e "s/autologin-user=pi/#autologin-user=/"; sync; reboot;
+fi
+}
+ 
+boottokiosk() {
+#Disable Kodi and enable Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm enable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default graphical.target > /dev/null 2>&1
+ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+sed -i 's/^Session.*/Session=openbox/' /home/pi/.dmrc > /dev/null 2>&1
+#Disable ES auto-start
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+rm -f /etc/profile.d/10-retropie.sh > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 2/fbi -T 1/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+echo -e 'chromium-browser --noerrdialogs --start-maximized http://google.com --incognito' >>/etc/xdg/openbox/autostart
+if (dialog --title "Pipplware Default Boot Menu - Host: [$hostname]" --yesno "\nDo you want to enable Auto Login ?" 7 76) then
+	sed /etc/lightdm/lightdm.conf -i -e "s/^#autologin-user=.*/autologin-user=pi/"; sync; reboot;
+else
+	sed /etc/lightdm/lightdm.conf -i -e "s/autologin-user=pi/#autologin-user=/"; sync; reboot;
+fi
+}
+ 
+boottothinclient() {
+#Disable Kodi and enable Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm enable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default graphical.target > /dev/null 2>&1
+ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service > /dev/null 2>&1
+sed -i 's/^Session.*/Session=openbox/' /home/pi/.dmrc > /dev/null 2>&1
+#Disable ES auto-start
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+rm -f /etc/profile.d/10-retropie.sh > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 2/fbi -T 1/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+#echo '[ "`tty`" = "/dev/tty1" ] && xinit /usr/bin/openbox-session -- vt07' >/etc/profile.d/10-openbox.sh #Old way of running Openbox, instead of using LightDM
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+echo -e 'remmina' >>/etc/xdg/openbox/autostart
+if (dialog --title "Pipplware Default Boot Menu - Host: [$hostname]" --yesno "\nDo you want to enable Auto Login ?" 7 76) then
+	sed /etc/lightdm/lightdm.conf -i -e "s/^#autologin-user=.*/autologin-user=pi/"; sync; reboot;
+else
+	sed /etc/lightdm/lightdm.conf -i -e "s/autologin-user=pi/#autologin-user=/"; sync; reboot;
+fi
+}
+ 
+boottoterminal() {
+#Disable Kodi and Lightdm services
+sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/kodi > /dev/null 2>&1
+update-rc.d lightdm disable 2 > /dev/null 2>&1
+update-rc.d kodi disable > /dev/null 2>&1
+#Enable auto-login
+systemctl set-default multi-user.target > /dev/null 2>&1
+#Disable ES auto-start
+rm -f /etc/profile.d/10-emulationstation.sh > /dev/null 2>&1
+rm -f /etc/profile.d/10-retropie.sh > /dev/null 2>&1
+#Fix splashscreen
+sed -i 's/fbi -T 2/fbi -T 1/g' /etc/init.d/asplashscreen > /dev/null 2>&1
+####Openbox####
+rm -f /etc/profile.d/10-openbox.sh > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/remmina/d" > /dev/null 2>&1
+sed /etc/xdg/openbox/autostart -i -e "/chromium-browser/d" > /dev/null 2>&1
+if (dialog --title "Pipplware Default Boot Menu - Host: [$hostname]" --yesno "\nDo you want to enable Auto Login ?" 7 76) then
+        ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service; sync; reboot;
+else
+        ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service; sync; reboot;
+fi
+}
+###Functions End###
+ 
+###Boot Menu###
+enable_joystick
+hostname=`hostname|tr '[:lower:]' '[:upper:]'`
+ 
+cmd=(dialog --timeout 25 --menu "Pipplware Default Boot Menu - Host: [$hostname]\nYou have 25 seconds to choose otherwise default option will be selected" 22 76 16)
+options=(1 "Emulation Station + KODI autostart (default)"
+         2 "Emulation Station"
+         3 "KODI Media Center + ES on Exit"
+         4 "XFCE Desktop"
+         5 "Kiosk Browser (Openbox + Chromium)"
+         6 "Thin Client (Openbox + Remmina)"
+         7 "Command Line")
+choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+for choice in $choices
+do
+    case $choice in
+        2)
+            clear
+        echo "Default boot set to Emulation Station, REBOOTING SYSTEM"
+            echo
+            boottoes
+            ;;
+        3)
+            clear
+        echo "Default boot set to KODI Media Center + ES on exit, REBOOTING SYSTEM"
+            echo
+            boottokodi
+            ;;
+        4)
+            clear
+        echo "Default boot set to XFCE Desktop, REBOOTING SYSTEM"
+            echo
+            boottoxfce
+            ;;
+        5)
+            clear
+        echo "Default boot set to Kiosk Browser (Openbox + Chromium), REBOOTING SYSTEM"
+            echo
+            boottokiosk
+            ;;
+        6)
+            clear
+        echo "Default boot set to Thin Client (Openbox + Remmina), REBOOTING SYSTEM"
+            echo
+            boottothinclient
+            ;;
+        7)
+            clear
+        echo "Default boot set to Command Line, REBOOTING SYSTEM"
+            echo
+            boottoterminal
+            ;;
+        *)
+            clear
+        echo "Default boot set to Emulation Station + KODI autostart, REBOOTING SYSTEM"
+            echo
+            boottoes_kodi
+            ;;
+    esac
+done
+kill_joystick
+clear
+###End of Boot Menu###
+###########################################################
+# End of Script
+###########################################################
